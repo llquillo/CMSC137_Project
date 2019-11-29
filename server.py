@@ -1,7 +1,9 @@
-import socket
-from _thread import *
+from _thread import start_new_thread
+from player import Player
 import random
-import time
+import socket
+import pickle
+
 
 max_players = 3
 
@@ -35,60 +37,6 @@ class Deck:
             return self.cards.pop(0)
 
 
-class Hand:
-    def __init__(self):
-        self.cards = []
-
-    def add_card(self, card):
-        self.cards.append(card)
-
-    def display(self, n):
-        print("Player", n, "cards:", end=" ")
-        for card in self.cards:
-            print(card, end=" ")
-        print()
-
-    def get_cards(self):
-        return self.cards
-
-
-class Game:
-    def __init__(self):
-        self.deck = Deck()
-        self.player = [Hand() for _ in range(max_players)]
-
-    def initialize(self):
-
-        while True:
-            self.deck.shuffle()
-
-            for n in range(max_players):
-                for _ in range(4):
-                    self.player[n].add_card(self.deck.deal())
-
-            break
-
-    def show_cards(self):
-        for n in range(max_players):
-            self.player[n].display(n + 1)
-
-    def get_player(self, n):
-        return self.player[n]
-
-
-def list_to_string(s):
-    # initialize an empty string
-    str1 = ""
-
-    # traverse in the string
-    for ele in s:
-        str1 += str(ele)
-        str1 += " "
-
-        # return string
-    return str1
-
-
 server = "192.168.0.48"
 port = 5555
 
@@ -101,23 +49,33 @@ except socket.error as e:
 
 s.listen(max_players)
 print("Server Started, Waiting for connection")
-g = Game()
-g.initialize()
+
+deck = Deck()
+deck.shuffle()
+players = [Player() for _ in range(max_players)]
+for n in range(max_players):
+    for _ in range(4):
+        players[n].add_card(deck.deal())
 
 
-def threaded_client(conn, player):
-    conn.send(str.encode(list_to_string(g.get_player(player).get_cards())))
+def threaded_client(conn, player_no):
+    conn.send(pickle.dumps(players[player_no]))
     reply = ""
     while True:
         try:
-            data = conn.recv(2048)
-            reply = data.decode("utf-8")
+            data = pickle.loads(conn.recv(2048))
+            players[player_no] = data
 
             if not data:
-                print("Player", player+1, "disconnected")
+                print("Player", player_no + 1, "disconnected")
                 break
+            else:
+                reply = players[player_no]
 
-            conn.sendall(str.encode(reply))
+                print("Received: ", data)
+                print("Sending :", reply)
+
+            conn.sendall(pickle.dumps(reply))
         except:
             break
 
@@ -134,6 +92,7 @@ while True:
 
     if current_player == max_players:
         print("All players are connected, Initializing Game")
-        g.show_cards()
+        for i in range(max_players):
+            players[i].show_cards()
     else:
         print("Waiting for other players to connect")
