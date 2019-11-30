@@ -9,7 +9,7 @@ class Player:
     def add_card(self, card):
         self.cards.append(str(card))
 
-    def remove_card(self, card_no):
+    def pass_card(self, card_no):
         return self.cards.pop(card_no)
 
     def show_cards(self):
@@ -18,6 +18,8 @@ class Player:
             print(card, end=" ")
         print()
 
-    def pass_card(self, card_no):
-        self.cards.pop(card_no)
-
+    def win(self):
+        if len(self.cards) == 4:
+            return all(str(x)[0] == str(self.cards[0])[0] for x in self.cards)
+        else:
+            return False

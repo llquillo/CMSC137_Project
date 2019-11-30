@@ -3,7 +3,7 @@ from player import Player
 import random
 import socket
 import pickle
-
+import time
 
 max_players = 3
 
@@ -57,13 +57,28 @@ for n in range(max_players):
     for _ in range(4):
         players[n].add_card(deck.deal())
 
+count_pass = 0
+n = 0
+
 
 def show_all_cards():
-    for i in range(max_players):
-        players[i].show_cards()
+    for p_no in range(max_players):
+        players[p_no].show_cards()
+
+
+def signal_pass():
+    global n
+    n = 0
+    while n < 3:
+        n += 1
+        print(n, end=" ")
+        time.sleep(1)
+    print("Pass!")
+    time.sleep(1)
 
 
 def threaded_client(conn, p_no):
+    global count_pass
     conn.send(pickle.dumps(players[p_no]))
     while True:
         try:
@@ -74,17 +89,27 @@ def threaded_client(conn, p_no):
                 break
             else:
                 card_no = int(data)
-                passed_card = players[p_no].remove_card(card_no)
 
+                passed_card = players[p_no].pass_card(card_no)
                 print("Player", p_no + 1, "passed", passed_card)
                 if p_no < max_players - 1:
-                    print("Player", p_no + 2, "received", passed_card)
+                    print("Player", p_no + 2, "will received", passed_card)
                     players[p_no+1].add_card(passed_card)
                 else:
-                    print("Player 1 received", passed_card)
+                    print("Player 1 will received", passed_card)
                     players[0].add_card(passed_card)
+                count_pass += 1
 
-            show_all_cards()
+            if count_pass == max_players:
+                signal_pass()
+                show_all_cards()
+                for p_no in range(max_players):
+                    if players[p_no].win():
+                        print("Player", p_no + 1, "win!")
+                        break
+                count_pass = 0
+            else:
+                print("Waiting for other players to pick a card")
             conn.sendall(pickle.dumps(players[p_no]))
         except:
             break
