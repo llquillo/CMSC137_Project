@@ -7,13 +7,11 @@
 
 
 ## Description of the Game:
-```
-  A 1-2-3 Pass Card game where the objective of the game is for a player to get all four (4) matching cards in order to win. The user interface will only be a command-line interface/text-based. 
+A 1-2-3 Pass Card game where the objective of the game is for a player to get all four (4) matching cards in order to win. The user interface will only be a command-line interface/text-based. 
 
-  The game consists of a Server and Client python files. The game will start once 3 or more clients (players) are connected to the running server. The client and server will then communicate using the network. 
+The game consists of a Server and Client python files. The game will start once 3 or more clients (players) are connected to the running server. The client and server will then communicate using the network. 
 
-  The game will end once the server confirms that one player has four matching cards.
-```
+The game will end once the server confirms that one player has four matching cards.
 
 
 ## Programming Language to be used:
