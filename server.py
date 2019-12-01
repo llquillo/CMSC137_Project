@@ -1,17 +1,20 @@
 from _thread import start_new_thread
-from player import Player
 import random
 import socket
 import pickle
 import time
 
-max_players = 3
+# address = input("Enter IPv4 address: ")
+# n_players = int(input("Enter number of players: "))
+
+address = "192.168.0.48"
+n_players = 3
 
 suits = ['C', 'D', 'H', 'S']
 ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K']
 
 rank_lookup = {}
-for i in range(max_players):
+for i in range(n_players):
     rank_lookup[ranks[i]] = i
 
 
@@ -37,7 +40,50 @@ class Deck:
             return self.cards.pop(0)
 
 
-server = "192.168.100.11"
+class Player:
+    def __init__(self, player_id):
+        self.player_id = player_id
+        self.cards = []
+
+    def add_card(self, card):
+        return self.cards.append(str(card))
+
+    def pass_card(self, card_no):
+        return self.cards.pop(card_no)
+
+    def show_cards(self):
+        print("Player", self.player_id + 1, "cards:", end=" ")
+        for card in self.cards:
+            print(card, end=" ")
+        print()
+
+    def win(self):
+        if len(self.cards) == 4:
+            return all(str(x)[0] == str(self.cards[0])[0] for x in self.cards)
+        else:
+            return False
+
+
+class Game:
+    def __init__(self, max_players):
+        self.deck = Deck()
+        self.max_players = max_players
+        self.players = [Player(p_no) for p_no in range(self.max_players)]
+        self.pass_count = 0
+
+    def initialize(self):
+        self.deck.shuffle()
+
+        for p_no in range(self.max_players):
+            for _ in range(4):
+                self.players[p_no].add_card(self.deck.deal())
+
+    def show_all_cards(self):
+        for p_no in range(self.max_players):
+            self.players[p_no].show_cards()
+
+
+server = address
 port = 5555
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -47,70 +93,51 @@ try:
 except socket.error as e:
     str(e)
 
-s.listen(max_players)
+s.listen(n_players)
 print("Server Started, Waiting for connection")
-
-deck = Deck()
-deck.shuffle()
-players = [Player(i+1) for i in range(max_players)]
-for n in range(max_players):
-    for _ in range(4):
-        players[n].add_card(deck.deal())
-
-count_pass = 0
-n = 0
-
-
-def show_all_cards():
-    for p_no in range(max_players):
-        players[p_no].show_cards()
+g = Game(n_players)
+g.initialize()
 
 
 def signal_pass():
-    global n
-    n = 0
-    while n < 3:
-        n += 1
-        print(n, end=" ")
+    c = 0
+    while c < 3:
+        c += 1
+        print(c, end=" ")
         time.sleep(1)
     print("Pass!")
     time.sleep(1)
 
 
+count = 0
 def threaded_client(conn, p_no):
-    global count_pass
-    conn.send(pickle.dumps(players[p_no]))
+    global count
+    conn.send(pickle.dumps([g.players[p_no].player_id, g.players[p_no].cards]))
     while True:
         try:
             data = pickle.loads(conn.recv(2048))
 
-            if not data:
-                print("Player", p_no + 1, "disconnected")
-                break
+            if data == "wait":
+                print("Waiting for players to pick a card")
             else:
                 card_no = int(data)
-
-                passed_card = players[p_no].pass_card(card_no)
-                print("Player", p_no + 1, "passed", passed_card)
-                if p_no < max_players - 1:
+                passed_card = g.players[p_no].pass_card(card_no)
+                print("Player", p_no + 1, "picked", passed_card)
+                if p_no < g.max_players - 1:
                     print("Player", p_no + 2, "will received", passed_card)
-                    players[p_no+1].add_card(passed_card)
+                    g.players[p_no + 1].add_card(passed_card)
                 else:
                     print("Player 1 will received", passed_card)
-                    players[0].add_card(passed_card)
-                count_pass += 1
+                    g.players[0].add_card(passed_card)
+                g.pass_count += 1
 
-            if count_pass == max_players:
+            conn.sendall(pickle.dumps([g.players[p_no].player_id, g.players[p_no].cards, g.pass_count, g.max_players]))
+            count += 1
+
+            if count == g.max_players:
                 signal_pass()
-                show_all_cards()
-                for p_no in range(max_players):
-                    if players[p_no].win():
-                        print("Player", p_no + 1, "win!")
-                        break
-                count_pass = 0
-            else:
-                print("Waiting for other players to pick a card")
-            conn.sendall(pickle.dumps(players[p_no]))
+                g.show_all_cards()
+                count = 0
         except:
             break
 
@@ -125,8 +152,9 @@ while True:
     start_new_thread(threaded_client, (conn, current_player))
     current_player += 1
 
-    if current_player == max_players:
+    if current_player == g.max_players:
         print("All players are connected, Initializing Game")
-        show_all_cards()
+        g.show_all_cards()
+        print("Waiting for players to pick a card")
     else:
         print("Waiting for other players to connect")
