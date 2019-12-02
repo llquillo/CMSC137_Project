@@ -58,10 +58,7 @@ class Player:
         print()
 
     def win(self):
-        if len(self.cards) == 4:
-            return all(str(x)[0] == str(self.cards[0])[0] for x in self.cards)
-        else:
-            return False
+        return all(str(x)[0] == str(self.cards[0])[0] for x in self.cards)
 
 
 class Game:
@@ -70,6 +67,7 @@ class Game:
         self.max_players = max_players
         self.players = [Player(p_no) for p_no in range(self.max_players)]
         self.pass_count = 0
+        self.winner = -1
 
     def initialize(self):
         self.deck.shuffle()
@@ -81,6 +79,9 @@ class Game:
     def show_all_cards(self):
         for p_no in range(self.max_players):
             self.players[p_no].show_cards()
+
+    def set_winner(self, player):
+        self.winner = player
 
 
 server = address
@@ -114,9 +115,12 @@ def threaded_client(conn, p_no):
     while True:
         try:
             data = pickle.loads(conn.recv(2048))
-            player = [g.players[p_no].player_id, g.players[p_no].cards, g.pass_count, g.max_players]
+            player = [g.players[p_no].player_id, g.players[p_no].cards, g.pass_count, g.max_players, g.winner]
+            # print("data:", data)
 
-            if data == "wait":
+            if not data:
+                print("Player", p_no + 1, "put his/her hand on the table!")
+            elif data == "wait":
                 print("Waiting for other players to pick a card")
                 g.pass_count += 1
                 time.sleep(5)
@@ -124,7 +128,13 @@ def threaded_client(conn, p_no):
                 signal_pass()
                 g.show_all_cards()
                 g.pass_count = 0
-                print("Again! Waiting for players to pick a card")
+                print("End of turn, Waiting for players to pick a card")
+            elif data == "win":
+                for p_no in range(g.max_players):
+                    if g.players[p_no].win():
+                        print("Player", p_no + 1, "wins!")
+                        g.winner = p_no
+                player = [g.players[p_no].player_id, g.players[p_no].cards, g.pass_count, g.max_players, g.winner]
             else:
                 card_no = int(data)
                 passed_card = g.players[p_no].pass_card(card_no)
@@ -136,6 +146,7 @@ def threaded_client(conn, p_no):
                     print("Player 1 will received", passed_card)
                     g.players[0].add_card(passed_card)
 
+            # print("player:", player)
             conn.sendall(pickle.dumps(player))
 
         except:

@@ -1,6 +1,5 @@
 import socket
 import pickle
-import time
 
 
 class Network:
@@ -46,16 +45,25 @@ def main():
     p[1]: player_cards
     p[2]: pass_count
     p[3]: max_no_of_players
+    p[4]: winner
     """
 
     while True:
         print("Your cards:", *p[1])
-        c = select_card()
-        n.send(str(c))
+        n.send(str(select_card()))
         print("Waiting for other players to pick a card")
         p = n.send(str("wait"))
         if p[2] + 1 == p[3]:
-            p = n.send(str("pass"))
+            n.send(str("pass"))
+            p = n.send(str("win"))
+            if p[4] >= 0:
+                print("Player", p[4] + 1, "wins!")
+                while True:
+                    i = input("Press [enter] to put hand on the middle of the table: ")
+                    n.send(str(i))
+                    if not i:
+                        break
+                exit()
 
 
 main()
