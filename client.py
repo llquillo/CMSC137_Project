@@ -51,15 +51,11 @@ def main():
     while True:
         print("Your cards:", *p[1])
         c = select_card()
-        p = n.send(str(c))
-        if p[2] != 0 and p[2] <= p[3]:
-            print("Waiting for other players to pick a card", p)
-            while p[2] != p[3]:
-                time.sleep(4)
-                if p[2] == 0:
-                    break
-                else:
-                    p = n.send(str("wait"))
+        n.send(str(c))
+        print("Waiting for other players to pick a card")
+        p = n.send(str("wait"))
+        if p[2] + 1 == p[3]:
+            p = n.send(str("pass"))
 
 
 main()

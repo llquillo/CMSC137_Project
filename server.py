@@ -109,16 +109,22 @@ def signal_pass():
     time.sleep(1)
 
 
-count = 0
 def threaded_client(conn, p_no):
-    global count
     conn.send(pickle.dumps([g.players[p_no].player_id, g.players[p_no].cards]))
     while True:
         try:
             data = pickle.loads(conn.recv(2048))
+            player = [g.players[p_no].player_id, g.players[p_no].cards, g.pass_count, g.max_players]
 
             if data == "wait":
-                print("Waiting for players to pick a card")
+                print("Waiting for other players to pick a card")
+                g.pass_count += 1
+                time.sleep(5)
+            elif data == "pass":
+                signal_pass()
+                g.show_all_cards()
+                g.pass_count = 0
+                print("Again! Waiting for players to pick a card")
             else:
                 card_no = int(data)
                 passed_card = g.players[p_no].pass_card(card_no)
@@ -129,15 +135,9 @@ def threaded_client(conn, p_no):
                 else:
                     print("Player 1 will received", passed_card)
                     g.players[0].add_card(passed_card)
-                g.pass_count += 1
 
-            conn.sendall(pickle.dumps([g.players[p_no].player_id, g.players[p_no].cards, g.pass_count, g.max_players]))
-            count += 1
+            conn.sendall(pickle.dumps(player))
 
-            if count == g.max_players:
-                signal_pass()
-                g.show_all_cards()
-                count = 0
         except:
             break
 
