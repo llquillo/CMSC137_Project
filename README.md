@@ -31,7 +31,7 @@ The IDE used in this project is PyCharm which is the recommended IDE for creatin
 
 ## Protocol:
 ### Data Flow Diagram:
-	
+![Data FLow Diagram](data_flow_diagram.png)
 
 ### Structure of the data to be exchanged:
 * The server broadcasts the initial randomized cards to clients (socket.send).
