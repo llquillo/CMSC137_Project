@@ -34,8 +34,7 @@ def select_card():
 
 
 def main():
-    # server = input("Enter server IPv4 address: ")
-    server = "192.168.0.48"
+    server = input("Enter server IPv4 address: ")
     n = Network(server)
     p = n.get_player()
     print("You are Player", p[0] + 1)
