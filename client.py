@@ -34,8 +34,7 @@ def select_card():
 
 
 def main():
-    # server = input("Enter server IPv4 address: ")
-    server = "192.168.0.48"
+    server = input("Enter server IPv4 address: ")
     n = Network(server)
     p = n.get_player()
     print("You are Player", p[0] + 1)
@@ -55,15 +54,15 @@ def main():
         p = n.send(str("wait"))
         if p[2] + 1 == p[3]:
             n.send(str("pass"))
-            p = n.send(str("win"))
-            if p[4] >= 0:
-                print("Player", p[4] + 1, "wins!")
-                while True:
-                    i = input("Press [enter] to put hand on the middle of the table: ")
-                    n.send(str(i))
-                    if not i:
-                        break
-                exit()
+        p = n.send(str("win"))
+        if p[4] >= 0:
+            print("Player", p[4] + 1, "wins!")
+            while True:
+                i = input("Press [enter] to put hand on the middle of the table: ")
+                n.send(str(i))
+                if not i:
+                    break
+            exit()
 
 
 main()
